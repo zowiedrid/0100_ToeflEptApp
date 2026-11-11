@@ -27,6 +27,8 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     currentUser: User?,
     onSelectPackage: (String) -> Unit,
+    onOpenLearning: () -> Unit = {},
+    onOpenTensesLab: () -> Unit = {},
     onLogout: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -108,6 +110,56 @@ fun HomeScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Quick Study Tools Banner (Modul & Trik + Lab Tenses)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onOpenLearning() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("📚", fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Modul & Trik", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                            Text("Tips 3 Part EPT", fontSize = 10.sp, color = Color(0xFF3B82F6))
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onOpenTensesLab() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("⚡", fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Lab Tenses", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                            Text("Simulator Rumus", fontSize = 10.sp, color = Color(0xFFD97706))
+                        }
                     }
                 }
             }

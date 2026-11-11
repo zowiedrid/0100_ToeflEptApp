@@ -27,6 +27,9 @@ sealed class Screen(val route: String, val title: String = "", val icon: ImageVe
     object Certificates : Screen("certificates", "Sertifikat", Icons.Default.Folder)
 
     // Flow Screens
+    object Learning : Screen("learning", "Modul Belajar", Icons.Default.School)
+    object TensesLab : Screen("tenses_lab", "Lab Tenses", Icons.Default.Tune)
+
     object TestSession : Screen("test/{packageId}") {
         fun createRoute(packageId: String) = "test/$packageId"
     }
@@ -124,6 +127,12 @@ fun Navigasi(
                     onSelectPackage = { packageId ->
                         navController.navigate(Screen.TestSession.createRoute(packageId))
                     },
+                    onOpenLearning = {
+                        navController.navigate(Screen.Learning.route)
+                    },
+                    onOpenTensesLab = {
+                        navController.navigate(Screen.TensesLab.route)
+                    },
                     onLogout = {
                         authViewModel.logout()
                         navController.navigate(Screen.Login.route) {
@@ -200,6 +209,19 @@ fun Navigasi(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }
+                )
+            }
+
+            composable(Screen.Learning.route) {
+                LearningModuleScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenTensesLab = { navController.navigate(Screen.TensesLab.route) }
+                )
+            }
+
+            composable(Screen.TensesLab.route) {
+                TensesLabScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

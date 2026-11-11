@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.a0100_toefleptapp.model.Question
+import com.example.a0100_toefleptapp.util.ToeflAudioPlayer
 import com.example.a0100_toefleptapp.viewmodel.TestUiState
 import com.example.a0100_toefleptapp.viewmodel.TestViewModel
 
@@ -39,6 +40,23 @@ fun TestSessionScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var showConfirmSubmit by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val audioPlayer = remember { ToeflAudioPlayer(context) }
+    val isAudioPlaying by audioPlayer.isPlaying.collectAsState()
+    val speechRate by audioPlayer.speechRate.collectAsState()
+    var showTranscript by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            audioPlayer.release()
+        }
+    }
+
+    LaunchedEffect((uiState as? TestUiState.InProgress)?.currentQuestionIndex) {
+        audioPlayer.stop()
+        showTranscript = false
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is TestUiState.Submitted) {
@@ -378,30 +396,164 @@ fun TestSessionScreen(
                                     }
                                 }
 
-                                // Audio script note for Part 1 Listening
+                                // Audio Player Card for Part 1 Listening
                                 if (!currentQuestion.audio_script.isNullOrBlank()) {
                                     Spacer(modifier = Modifier.height(10.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                        modifier = Modifier.fillMaxWidth()
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                                        ),
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            if (isAudioPlaying) Color(0xFF10B981) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                        )
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.VolumeUp,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Audio Transcript: \"${currentQuestion.audio_script}\"",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
+                                        Column(modifier = Modifier.padding(14.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        Icons.Default.Headphones,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "Audio Listening (Part 1)",
+                                                        fontWeight = FontWeight.Bold,
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+
+                                                if (isAudioPlaying) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        color = Color(0xFF10B981).copy(alpha = 0.2f)
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Default.GraphicEq,
+                                                                contentDescription = null,
+                                                                tint = Color(0xFF047857),
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text(
+                                                                text = "Memutar Suara...",
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF047857)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(10.dp))
+
+                                            // Play / Stop Controls
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        if (isAudioPlaying) {
+                                                            audioPlayer.stop()
+                                                        } else {
+                                                            audioPlayer.playAudio(currentQuestion.audio_script)
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = if (isAudioPlaying) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        if (isAudioPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                                        contentDescription = null
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = if (isAudioPlaying) "Hentikan Audio" else "▶️ Putar Audio Percakapan",
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+
+                                                OutlinedButton(
+                                                    onClick = { audioPlayer.toggleSpeed() },
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${speechRate}x",
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(10.dp))
+
+                                            // Toggle Transcript visibility (Exam Mode vs Study Mode)
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { showTranscript = !showTranscript }
+                                                    .padding(vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = if (showTranscript) "Sembunyikan Transkrip Teks" else "Tampilkan Transkrip Teks (Bantuan Belajar)",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Icon(
+                                                    if (showTranscript) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+
+                                            if (showTranscript) {
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = Color.White,
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text(
+                                                        text = currentQuestion.audio_script,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color.DarkGray,
+                                                        modifier = Modifier.padding(10.dp),
+                                                        lineHeight = 18.sp
+                                                    )
+                                                }
+                                            } else {
+                                                Text(
+                                                    text = "💡 Di ujian resmi TOEFL EPT, teks audio tidak ditampilkan. Dengarkan suara audio dengan seksama!",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color.Gray,
+                                                    fontSize = 11.sp,
+                                                    modifier = Modifier.padding(top = 2.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
