@@ -55,7 +55,10 @@ exports.getPackageById = async (req, res) => {
           as: 'questions'
         }
       ],
-      order: [[{ model: Question, as: 'questions' }, 'number', 'ASC']]
+      order: [
+        [{ model: Question, as: 'questions' }, 'part', 'ASC'],
+        [{ model: Question, as: 'questions' }, 'number', 'ASC']
+      ]
     });
 
     if (!pkg) {

@@ -44,7 +44,13 @@ class TestViewModel(private val repository: TestRepository) : ViewModel() {
         viewModelScope.launch {
             val result = repository.getPackageDetail(packageId)
             result.onSuccess { pkg ->
-                currentPackage = pkg
+                // Sort questions strictly by Part ASC, then Number ASC
+                val sortedQuestions = pkg.questions?.sortedWith(
+                    compareBy<Question> { it.part }.thenBy { it.number }
+                ) ?: emptyList()
+                val sortedPkg = pkg.copy(questions = sortedQuestions)
+
+                currentPackage = sortedPkg
                 currentIndex = 0
                 currentPart = 1
                 userAnswers.clear()
@@ -87,14 +93,12 @@ class TestViewModel(private val repository: TestRepository) : ViewModel() {
     }
 
     fun goToNextQuestion() {
-        val total = currentPackage?.questions?.size ?: 0
-        if (currentIndex < total - 1) {
+        val questions = currentPackage?.questions ?: emptyList()
+        if (currentIndex < questions.size - 1) {
             currentIndex++
-            // update active part based on question
-            currentPackage?.questions?.getOrNull(currentIndex)?.let { q ->
+            questions.getOrNull(currentIndex)?.let { q ->
                 if (q.part != currentPart) {
                     currentPart = q.part
-                    // adjust timer based on part
                     timeRemaining = when (currentPart) {
                         2 -> 25 * 60
                         3 -> 55 * 60
@@ -107,9 +111,10 @@ class TestViewModel(private val repository: TestRepository) : ViewModel() {
     }
 
     fun goToPreviousQuestion() {
+        val questions = currentPackage?.questions ?: emptyList()
         if (currentIndex > 0) {
             currentIndex--
-            currentPackage?.questions?.getOrNull(currentIndex)?.let { q ->
+            questions.getOrNull(currentIndex)?.let { q ->
                 currentPart = q.part
             }
             updateInProgressState()
@@ -117,10 +122,10 @@ class TestViewModel(private val repository: TestRepository) : ViewModel() {
     }
 
     fun jumpToQuestion(index: Int) {
-        val total = currentPackage?.questions?.size ?: 0
-        if (index in 0 until total) {
+        val questions = currentPackage?.questions ?: emptyList()
+        if (index in questions.indices) {
             currentIndex = index
-            currentPackage?.questions?.getOrNull(currentIndex)?.let { q ->
+            questions.getOrNull(currentIndex)?.let { q ->
                 currentPart = q.part
             }
             updateInProgressState()
@@ -128,8 +133,9 @@ class TestViewModel(private val repository: TestRepository) : ViewModel() {
     }
 
     fun switchPart(part: Int) {
-        val firstQuestionOfPart = currentPackage?.questions?.indexOfFirst { it.part == part }
-        if (firstQuestionOfPart != null && firstQuestionOfPart >= 0) {
+        val questions = currentPackage?.questions ?: emptyList()
+        val firstQuestionOfPart = questions.indexOfFirst { it.part == part }
+        if (firstQuestionOfPart >= 0) {
             currentIndex = firstQuestionOfPart
             currentPart = part
             timeRemaining = when (part) {

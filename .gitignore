@@ -19,3 +19,6 @@ local.properties
 backend/node_modules
 backend/database.sqlite
 backend/.env
+
+.idea/
+*.iml

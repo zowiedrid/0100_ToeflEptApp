@@ -4,11 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -173,183 +176,314 @@ fun TestSessionScreen(
                 val questions = state.pkg.questions ?: emptyList()
                 val currentQuestion: Question? = questions.getOrNull(state.currentQuestionIndex)
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
-                ) {
-                    // Part Selector Tabs
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                if (questions.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        listOf(1 to "Part 1: Listening", 2 to "Part 2: Structure", 3 to "Part 3: Reading").forEach { (p, label) ->
-                            FilterChip(
-                                selected = state.currentPart == p,
-                                onClick = { viewModel.switchPart(p) },
-                                label = { Text(label, fontSize = 12.sp) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (currentQuestion != null) {
-                        // Question Header
-                        Row(
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Text(
-                                text = "Soal No. ${currentQuestion.number} dari ${questions.size}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color.LightGray.copy(alpha = 0.3f)
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = currentQuestion.type.uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    text = "⚠️ Data Soal Belum Tersedia",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Sedang memuat atau server belum mengirimkan butir soal paket ini.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.DarkGray
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.loadTestPackage(packageId) }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Muat Ulang Soal")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    val p1Count = questions.count { it.part == 1 }
+                    val p2Count = questions.count { it.part == 2 }
+                    val p3Count = questions.count { it.part == 3 }
+                    val partQuestions = questions.filter { it.part == state.currentPart }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        // 1. PINNED PART TABS (PrimaryTabRow)
+                        PrimaryTabRow(
+                            selectedTabIndex = (state.currentPart - 1).coerceIn(0, 2),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ) {
+                            val partTabs = listOf(
+                                1 to "P1: Listening ($p1Count)",
+                                2 to "P2: Structure ($p2Count)",
+                                3 to "P3: Reading ($p3Count)"
+                            )
+                            partTabs.forEach { (p, label) ->
+                                Tab(
+                                    selected = state.currentPart == p,
+                                    onClick = { viewModel.switchPart(p) },
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (state.currentPart == p) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
                                 )
                             }
                         }
 
-                        // Reading passage if any
-                        if (!currentQuestion.passage_text.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = "📖 Bacaan Terkait:",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = currentQuestion.passage_text,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.DarkGray
-                                    )
-                                }
-                            }
-                        }
-
-                        // Audio script note for Part 1 Listening
-                        if (!currentQuestion.audio_script.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                        // 2. PINNED QUESTION PALETTE
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.Default.VolumeUp,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Audio Transcript: \"${currentQuestion.audio_script}\"",
-                                        style = MaterialTheme.typography.bodySmall,
+                                        text = "Daftar Nomor Part ${state.currentPart}:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                    Text(
+                                        text = "${state.userAnswers.size} / ${questions.size} Terjawab",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF16A34A)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(partQuestions) { q ->
+                                        val isCurrent = currentQuestion?.id == q.id
+                                        val isAnswered = state.userAnswers.containsKey(q.id)
+                                        val globalIdx = questions.indexOfFirst { it.id == q.id }
+
+                                        val chipBg = when {
+                                            isCurrent -> MaterialTheme.colorScheme.primary
+                                            isAnswered -> Color(0xFF10B981)
+                                            else -> Color(0xFFE2E8F0)
+                                        }
+                                        val textColor = if (isCurrent || isAnswered) Color.White else Color.Black
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = chipBg,
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clickable { viewModel.jumpToQuestion(globalIdx) }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = "${q.number}",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = textColor
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f))
 
-                        // Prompt
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        // 3. SCROLLABLE QUESTION CONTENT
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp)
                         ) {
-                            Text(
-                                text = currentQuestion.prompt,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
+                            if (currentQuestion != null) {
+                                val currentInPart = partQuestions.indexOfFirst { it.id == currentQuestion.id } + 1
+                                val totalInPart = partQuestions.size
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Options A, B, C, D
-                        val selectedAns = state.userAnswers[currentQuestion.id]
-
-                        val options = listOf(
-                            "a" to currentQuestion.option_a,
-                            "b" to currentQuestion.option_b,
-                            "c" to currentQuestion.option_c,
-                            "d" to currentQuestion.option_d
-                        )
-
-                        options.forEach { (key, text) ->
-                            val isSelected = selectedAns == key
-                            val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray
-                            val bgColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
-
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clickable { viewModel.selectAnswer(currentQuestion.id, key) }
-                                    .border(if (isSelected) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp)),
-                                shape = RoundedCornerShape(12.dp),
-                                color = bgColor
-                            ) {
+                                // Question Header
                                 Row(
-                                    modifier = Modifier.padding(14.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Text(
+                                        text = "Soal No. $currentInPart dari $totalInPart (Part ${state.currentPart})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
                                     Surface(
-                                        shape = CircleShape,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0),
-                                        modifier = Modifier.size(28.dp)
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = currentQuestion.type.uppercase(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+
+                                // Reading passage if any
+                                if (!currentQuestion.passage_text.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
+                                    ) {
+                                        Column(modifier = Modifier.padding(12.dp)) {
                                             Text(
-                                                text = key.uppercase(),
-                                                color = if (isSelected) Color.White else Color.Black,
+                                                text = "📖 Bacaan Terkait:",
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
+                                                style = MaterialTheme.typography.labelMedium
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = currentQuestion.passage_text,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.DarkGray
                                             )
                                         }
                                     }
+                                }
 
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                // Audio script note for Part 1 Listening
+                                if (!currentQuestion.audio_script.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.VolumeUp,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Audio Transcript: \"${currentQuestion.audio_script}\"",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
 
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                // Prompt
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
                                     Text(
-                                        text = text,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        text = currentQuestion.prompt,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(16.dp)
                                     )
                                 }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Options A, B, C, D (Filter out blank options)
+                                val selectedAns = state.userAnswers[currentQuestion.id]
+
+                                val rawOptions = listOf(
+                                    "a" to currentQuestion.option_a,
+                                    "b" to currentQuestion.option_b,
+                                    "c" to currentQuestion.option_c,
+                                    "d" to currentQuestion.option_d
+                                )
+                                val options = rawOptions.filter { it.second.isNotBlank() }
+
+                                options.forEach { (key, text) ->
+                                    val isSelected = selectedAns == key
+                                    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray
+                                    val bgColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clickable { viewModel.selectAnswer(currentQuestion.id, key) }
+                                            .border(if (isSelected) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp)),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = bgColor
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0),
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = key.uppercase(),
+                                                        color = if (isSelected) Color.White else Color.Black,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.width(12.dp))
+
+                                            Text(
+                                                text = text,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        }
+                                    }
+                                }
                             }
+
+                            Spacer(modifier = Modifier.height(40.dp))
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
             else -> {}

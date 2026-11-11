@@ -105,3 +105,4 @@ Berikut adalah pertanyaan teknis yang paling sering diajukan dosen penguji beser
    * Tunjukkan bahwa repositori memiliki **36 commit bertahap** dan dokumentasi README yang sangat lengkap.
 4. **Bicara Santai, Terstruktur, dan Percaya Diri:**
    * Gunakan istilah teknis yang tepat: *Compose, ViewModel, StateFlow, Retrofit, JWT Bearer Token, FileOutputStream*.
+

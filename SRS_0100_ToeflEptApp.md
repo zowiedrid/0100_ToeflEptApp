@@ -171,3 +171,4 @@ Aplikasi dibangun dengan mematuhi prinsip arsitektur **Clean MVVM Android**:
 
 ## BAB VI: PENUTUP
 Dokumen SRS ini telah disesuaikan secara presisi dengan implementasi kode pada repositori `0100_ToeflEptApp`. Seluruh fungsionalitas yang tercantum telah teruji bebas bug fatal dan siap dipresentasikan pada Ujian Akhir Semester Mata Kuliah Pengembangan Aplikasi Mobile (PAM) 2026.
+

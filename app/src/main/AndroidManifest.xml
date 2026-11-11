@@ -17,7 +17,7 @@
         android:theme="@style/Theme._0100_ToeflEptApp"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.a0100_toefleptapp.MainActivity"
             android:exported="true"
             android:theme="@style/Theme._0100_ToeflEptApp">
             <intent-filter>
